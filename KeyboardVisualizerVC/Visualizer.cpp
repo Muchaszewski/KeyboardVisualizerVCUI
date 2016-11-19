@@ -1,7 +1,6 @@
 #include "Visualizer.h"
 #include "RazerChroma.h"
 #include "CorsairKeyboard.h"
-#include "MSIKeyboard.h"
 #include "LEDStrip.h"
 
 //WASAPI includes
@@ -14,9 +13,7 @@
 
 RazerChroma rkb;
 CorsairKeyboard ckb;
-MSIKeyboard mkb;
 std::vector<LEDStrip *> str;
-std::vector<LEDStrip *> xmas;
 
 //WASAPI objects
 IMMDeviceEnumerator *pMMDeviceEnumerator;
@@ -45,12 +42,6 @@ static void ckbthread(void *param)
     vis->CorsairKeyboardUpdateThread();
 }
 
-static void mkbthread(void *param)
-{
-    Visualizer* vis = static_cast<Visualizer*>(param);
-    vis->MSIKeyboardUpdateThread();
-}
-
 static void lsthread(void *param)
 {
     Visualizer* vis = static_cast<Visualizer*>(param);
@@ -67,13 +58,6 @@ void Visualizer::AddLEDStrip(char* port)
     LEDStrip *newstr = new LEDStrip();
     newstr->Initialize(port);
     str.push_back(newstr);
-}
-
-void Visualizer::AddLEDStripXmas(char* port)
-{
-    LEDStrip *newstr = new LEDStrip();
-    newstr->Initialize(port);
-    xmas.push_back(newstr);
 }
 
 float fft_nrml[256];
@@ -94,17 +78,16 @@ void Visualizer::Initialize()
     
     rkb.Initialize();
 	ckb.Initialize();
-    mkb.Initialize();
 
-	amplitude   = 100;
+	amplitude   = 3000;
     avg_mode    = 0;
-    avg_size    = 8;
+    avg_size    = 5;
 	bkgd_step   = 0;
 	bkgd_bright = 10;
 	bkgd_mode   = 0;
-	delay       = 50;
+	delay       = 0;
 	window_mode = 1;
-	decay       = 80;
+	decay       = 93;
     frgd_mode   = 8;
     single_color_mode = 1;
 
@@ -302,7 +285,6 @@ void Visualizer::StartThread()
 	_beginthread(thread, 0, this);
 	_beginthread(rkbthread, 0, this);
     _beginthread(ckbthread, 0, this);
-    _beginthread(mkbthread, 0, this);
     _beginthread(lsthread, 0, this);
 }
 
@@ -760,28 +742,15 @@ void Visualizer::CorsairKeyboardUpdateThread()
     }
 }
 
-void Visualizer::MSIKeyboardUpdateThread()
-{
-    while (mkb.SetLEDs(pixels))
-    {
-        Sleep(delay);
-    }
-}
-
 void Visualizer::LEDStripUpdateThread()
 {
-    if (str.size() > 0 || xmas.size() > 0)
+    if( str.size() > 0 )
     {
         while (TRUE)
         {
             for (int i = 0; i < str.size(); i++)
             {
                 str[i]->SetLEDs(pixels);
-            }
-        
-            for (int i = 0; i < xmas.size(); i++)
-            {
-                xmas[i]->SetLEDsXmas(pixels);
             }
 
             if (delay < 15)

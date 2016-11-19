@@ -2,13 +2,13 @@
 
 const static int led_matrix_c[7][22]
 {//Col Pos:   0    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   17   18   19   20   21
-/*Row 0*/   { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 137, 8,   255, 255, 20,  255, 255 },
-/*Row 1*/   { 255, 0,   255, 12,  24,  36,  48,  60,  72,  84,  96,  108, 120, 132, 6,   18,  30,  42,  32,  44,  56,  68  }, //68
-/*Row 2*/   { 255, 1,   13,  25,  37,  49,  61,  73,  85,  97,  109, 121, 133, 7,   31,  54,  66,  78,  80,  92,  104, 116 }, //116
-/*Row 3*/   { 255, 2,   14,  26,  38,  50,  62,  74,  86,  98,  110, 122, 134, 90,  102, 43,  55,  67,  9,   21,  33,  128 }, //128
-/*Row 4*/   { 255, 3,   15,  27,  39,  51,  63,  75,  87,  99,  111, 123, 135, 114, 126, 255, 255, 255, 57,  69,  81,  128 },
-/*Row 5*/   { 255, 4,   16,  28,  40,  52,  64,  76,  88,  100, 112, 124, 136, 255, 79,  255, 103, 255, 93,  105, 117, 140 },
-/*Row 6*/   { 255, 5,   17,  29,  255, 255, 255, 53,  255, 255, 255, 89,  101, 113, 91,  115, 127, 139, 255, 129, 141, 140 }
+	/*Row 0*/   { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 137, 8,   255, 255, 20,  255, 255 },
+	/*Row 1*/   { 255, 0,   255, 12,  24,  36,  48,  64,  76,  88,  100, 112, 128, 140, 6,   18,  30,  42,  32,  44,  56,  72  },
+	/*Row 2*/   { 255, 1,   13,  25,  37,  49,  65,  77,  89,  101, 113, 129, 141, 7,   31,  54,  70,  82,  84,  96,  108, 120 },
+	/*Row 3*/   { 255, 2,   14,  26,  38,  50,  66,  78,  90,  102, 114, 130, 142,  94,  106, 43,  55,  71,  9,   21,  33,  136 },
+	/*Row 4*/   { 255, 3,   15,  27,  39,  51,  67,  79,  91,  103, 115, 131, 143,  255, 134, 255, 255, 255, 57,  73,  85,  136 },
+	/*Row 5*/   { 255, 4,   255, 28,  40,  52,  68,  80,  92,  104, 116, 132, 144, 255, 83,  255, 107, 255, 97,  109, 121, 148 },
+	/*Row 6*/   { 255, 5,   17,  29,  255, 255, 255, 53,  255, 255, 255, 93,  105, 117, 95,  119, 135, 147, 255, 137, 149, 255 }
 };
 
 static bool init_ok = TRUE;
@@ -33,7 +33,7 @@ CorsairKeyboard::~CorsairKeyboard()
 //==================================================================================================
 // Code by http://www.reddit.com/user/chrisgzy
 //==================================================================================================
-static bool IsMatchingDevice(wchar_t *pDeviceID, unsigned int uiVID, unsigned int uiPID, unsigned int uiMI)
+bool IsMatchingDevice(wchar_t *pDeviceID, unsigned int uiVID, unsigned int uiPID, unsigned int uiMI)
 {
 	unsigned int uiLocalVID = 0, uiLocalPID = 0, uiLocalMI = 0;
 
@@ -70,7 +70,7 @@ static bool IsMatchingDevice(wchar_t *pDeviceID, unsigned int uiVID, unsigned in
 //==================================================================================================
 // Code by http://www.reddit.com/user/chrisgzy
 //==================================================================================================
-static HANDLE GetDeviceHandle(unsigned int uiVID, unsigned int uiPID, unsigned int uiMI)
+HANDLE GetDeviceHandle(unsigned int uiVID, unsigned int uiPID, unsigned int uiMI)
 {
 	const GUID GUID_DEVINTERFACE_HID = { 0x4D1E55B2L, 0xF16F, 0x11CF, 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30 };
 	HDEVINFO hDevInfo = SetupDiGetClassDevs(&GUID_DEVINTERFACE_HID, 0, 0, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
@@ -87,6 +87,7 @@ static HANDLE GetDeviceHandle(unsigned int uiVID, unsigned int uiPID, unsigned i
 		wchar_t wszDeviceID[MAX_DEVICE_ID_LEN];
 		if (CM_Get_Device_IDW(deviceData.DevInst, wszDeviceID, MAX_DEVICE_ID_LEN, 0))
 			continue;
+		//HID\VID_1B1C&PID_1B33&MI_01&Col01
 
 		if (!IsMatchingDevice(wszDeviceID, uiVID, uiPID, uiMI))
 			continue;
@@ -105,6 +106,7 @@ static HANDLE GetDeviceHandle(unsigned int uiVID, unsigned int uiPID, unsigned i
 
 		if (!SetupDiGetDeviceInterfaceDetail(hDevInfo, &interfaceData, pData, dwRequiredSize, 0, 0))
 		{
+			auto error = GetLastError();
 			delete pData;
 			break;
 		}
@@ -112,6 +114,7 @@ static HANDLE GetDeviceHandle(unsigned int uiVID, unsigned int uiPID, unsigned i
 		HANDLE hDevice = CreateFile(pData->DevicePath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0);
 		if (hDevice == INVALID_HANDLE_VALUE)
 		{
+			auto error = GetLastError();
 			delete pData;
 			break;
 		}
@@ -139,115 +142,96 @@ int CorsairKeyboard::Initialize()
 {
 	char data_pkt[5][64] = { 0 };
 
-    //Look for K70 RGB
-	dev = GetDeviceHandle(0x1B1C, 0x1B13, 0x3);
+	//Look for K70 RGB LUX
+	dev = GetDeviceHandle(0x1B1C, 0x1B33, 0x2);
 	if (dev == NULL)
 	{
-        //Look for K95 RGB
-        dev = GetDeviceHandle(0x1B1C, 0x1B11, 0x3);
-        if (dev == NULL)
-        {
-            init_ok = FALSE;
-            return 0;
-        }
+		//Look for K95 RGB
+		dev = GetDeviceHandle(0x1B1C, 0x1B11, 0x3);
+		if (dev == NULL)
+		{
+			//Look for K70 RGB
+			dev = GetDeviceHandle(0x1B1C, 0x1B13, 0x3);
+			if (dev == NULL)
+			{
+				init_ok = FALSE;
+				return 0;
+			}
+		}
 	}
 
-    for (int x = 0; x < 22; x++)
-    {
-        CorsairKeyboardXIndex[x] = x * (256 / 22);
-    }
-    for (int y = 0; y < 7; y++)
-    {
-        CorsairKeyboardYIndex[y] = (y - 1) * (64 / 6) + (0.5f * (64 / 6));
+	for (int x = 0; x < 22; x++)
+	{
+		CorsairKeyboardXIndex[x] = x * (256 / 22);
+	}
+	for (int y = 0; y < 7; y++)
+	{
+		CorsairKeyboardYIndex[y] = (y - 1) * (64 / 6) + (0.5f * (64 / 6));
 
-        if (y == 0)
-        {
-            CorsairKeyboardYIndex[y] = 0 * (64 / 6) + (0.5f * (64 / 6));
-        }
-    }
+		if (y == 0)
+		{
+			CorsairKeyboardYIndex[y] = 0 * (64 / 6) + (0.5f * (64 / 6));
+		}
+	}
 }
 
 bool CorsairKeyboard::SetLEDs(COLORREF pixels[64][256])
 {
-	char red_val[144];
-	char grn_val[144];
-	char blu_val[144];
-	char data_pkt[5][64] = { 0 };
+	char data_pkt[3][5][64] = { 0 };
 
-	for (int x = 0; x < 22; x++)
+	for (size_t i = 0; i < 3; i++)
 	{
-		for (int y = 0; y < 7; y++)
+		data_pkt[i][4][2] = i + 1; //Color RGB
+
+		data_pkt[i][0][0] = 0x7F;
+		data_pkt[i][0][1] = 0x01;
+		data_pkt[i][0][2] = 0x3C;
+
+		data_pkt[i][1][0] = 0x7F;
+		data_pkt[i][1][1] = 0x02;
+		data_pkt[i][1][2] = 0x3C;
+
+		data_pkt[i][2][0] = 0x7F;
+		data_pkt[i][2][1] = 0x03;
+		data_pkt[i][2][2] = 0x18;
+
+		data_pkt[i][3][0] = 0x7F;
+		data_pkt[i][3][1] = 0x04;
+		data_pkt[i][3][2] = 0x24;
+
+		data_pkt[i][4][0] = 0x07;
+		data_pkt[i][4][1] = 0x28;
+		data_pkt[i][4][3] = 0x03;
+		data_pkt[i][4][4] = 0x02;
+
+		for (int x = 0; x < 22; x++)
 		{
-			int led = led_matrix_c[y][x];
+			for (int y = 0; y < 7; y++)
+			{
+				int led = led_matrix_c[y][x];
 
-            if (led < 144)
-            {
-                red_val[led] = 7 - (GetRValue(pixels[CorsairKeyboardYIndex[y]][CorsairKeyboardXIndex[x]]) / 32);
-                grn_val[led] = 7 - (GetGValue(pixels[CorsairKeyboardYIndex[y]][CorsairKeyboardXIndex[x]]) / 32);
-                blu_val[led] = 7 - (GetBValue(pixels[CorsairKeyboardYIndex[y]][CorsairKeyboardXIndex[x]]) / 32);
-            }
+				if (led < 149)
+				{
+					int resolvedM = floor(led / 64);
+					int resolvedm = floor((led % 64)) + 4;
+
+					data_pkt[0][resolvedM][resolvedm] =  (GetRValue(pixels[CorsairKeyboardYIndex[y]][CorsairKeyboardXIndex[x]]));
+					data_pkt[1][resolvedM][resolvedm] =  (GetGValue(pixels[CorsairKeyboardYIndex[y]][CorsairKeyboardXIndex[x]]));
+					data_pkt[2][resolvedM][resolvedm] =  (GetBValue(pixels[CorsairKeyboardYIndex[y]][CorsairKeyboardXIndex[x]]));
+
+				}
+			}
 		}
+
+		send_usb_msg(data_pkt[i][0]);
+		send_usb_msg(data_pkt[i][1]);
+		send_usb_msg(data_pkt[i][2]);
+		send_usb_msg(data_pkt[i][3]);
+		send_usb_msg(data_pkt[i][4]);
 	}
+	Sleep(30);
 
-	data_pkt[0][0] = 0x7F;
-	data_pkt[0][1] = 0x01;
-	data_pkt[0][2] = 0x3C;
 
-	data_pkt[1][0] = 0x7F;
-	data_pkt[1][1] = 0x02;
-	data_pkt[1][2] = 0x3C;
 
-	data_pkt[2][0] = 0x7F;
-	data_pkt[2][1] = 0x03;
-	data_pkt[2][2] = 0x3C;
-
-	data_pkt[3][0] = 0x7F;
-	data_pkt[3][1] = 0x04;
-	data_pkt[3][2] = 0x24;
-
-	data_pkt[4][0] = 0x07;
-	data_pkt[4][1] = 0x27;
-	data_pkt[4][4] = 0xD8;
-
-	for (int i = 0; i < 60; i++)
-	{
-		data_pkt[0][i + 4] = red_val[i * 2 + 1] << 4 | red_val[i * 2];
-	}
-
-	for (int i = 0; i < 12; i++)
-	{
-		data_pkt[1][i + 4] = red_val[i * 2 + 121] << 4 | red_val[i * 2 + 120];
-	}
-
-	for (int i = 0; i < 48; i++)
-	{
-		data_pkt[1][i + 16] = grn_val[i * 2 + 1] << 4 | grn_val[i * 2];
-	}
-
-	for (int i = 0; i < 24; i++)
-	{
-		data_pkt[2][i + 4] = grn_val[i * 2 + 97] << 4 | grn_val[i * 2 + 96];
-	}
-
-	for (int i = 0; i < 36; i++)
-	{
-		data_pkt[2][i + 28] = blu_val[i * 2 + 1] << 4 | blu_val[i * 2];
-	}
-
-	for (int i = 0; i < 36; i++)
-	{
-		data_pkt[3][i + 4] = blu_val[i * 2 + 73] << 4 | blu_val[i * 2 + 72];
-	}
-
-	send_usb_msg(data_pkt[0]);
-	Sleep(1);
-	send_usb_msg(data_pkt[1]);
-	Sleep(1);
-	send_usb_msg(data_pkt[2]);
-	Sleep(1);
-	send_usb_msg(data_pkt[3]);
-	Sleep(1);
-	send_usb_msg(data_pkt[4]);
-
-    return init_ok;
+	return init_ok;
 }
