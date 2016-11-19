@@ -36,4 +36,4 @@ https://drive.google.com/folderview?id=0B1Fq0HEJolPtWDNsNV93NVl5Vms&usp=sharing
     * Corsair RGB
     
         Keyboards
-        - K70 RGB (spectrograph)
+        - K70 LUX RGB (spectrograph) (not K70)
